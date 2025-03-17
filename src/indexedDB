@@ -1,0 +1,90 @@
+import { openDB } from "idb";
+
+const DB_NAME = "offlineDB";
+const DB_VERSION = 3; // Increment version when updating schema
+const GUEST_STORE = "guest";
+const SYNC_STORE = "sync";
+
+// Initialize IndexedDB
+const initDB = async () => {
+  return openDB(DB_NAME, DB_VERSION, {
+    upgrade(db) {
+      if (!db.objectStoreNames.contains(GUEST_STORE)) {
+        db.createObjectStore(GUEST_STORE, { keyPath: "id", autoIncrement: true });
+      }
+      if (!db.objectStoreNames.contains(SYNC_STORE)) {
+        db.createObjectStore(SYNC_STORE, { keyPath: "id", autoIncrement: true });
+      }
+    },
+  });
+};
+
+// Add Guest Data
+export const addGuest = async (guest) => {
+  const db = await initDB();
+  const tx = db.transaction(GUEST_STORE, "readwrite");
+  const store = tx.objectStore(GUEST_STORE);
+  const id = await store.add(guest);
+  await tx.done;
+
+  // Track in sync table
+  await addToSyncTable({ ...guest, id, action: "insert" });
+
+  return id;
+};
+
+// Update Guest Data
+export const updateGuest = async (guest) => {
+  const db = await initDB();
+  const tx = db.transaction(GUEST_STORE, "readwrite");
+  const store = tx.objectStore(GUEST_STORE);
+  await store.put(guest);
+  await tx.done;
+
+  // Track update in sync table
+  await addToSyncTable({ ...guest, action: "update" });
+};
+
+// Get All Guests
+export const getAllGuests = async () => {
+  const db = await initDB();
+  return db.getAll(GUEST_STORE);
+};
+
+// Add to Sync Table
+const addToSyncTable = async (data) => {
+  const db = await initDB();
+  const tx = db.transaction(SYNC_STORE, "readwrite");
+  const store = tx.objectStore(SYNC_STORE);
+  await store.add(data);
+  await tx.done;
+};
+
+// Clear Sync Table after successful sync
+const clearSyncTable = async () => {
+  const db = await initDB();
+  const tx = db.transaction(SYNC_STORE, "readwrite");
+  tx.objectStore(SYNC_STORE).clear();
+  await tx.done;
+};
+
+// Sync Data to Server
+export const syncData = async () => {
+  if (!navigator.onLine) return;
+
+  const syncData = await getAllGuests(); // Get all unsynced guests
+  if (syncData.length === 0) return;
+
+  try {
+    await fetch("http://127.0.0.1:7998/api/sync_guests", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(syncData),
+    });
+
+    console.log("Guests synced successfully!");
+    await clearSyncTable();
+  } catch (error) {
+    console.error("Sync failed", error);
+  }
+};

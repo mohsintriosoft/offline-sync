@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { addData, updateData, getAllGuests, syncData,getSystemInfo,setSystemInfo } from "./indexedDB.js";
-
+import axios from "axios";
 const App = () => {
   const [main_guest_infos, setGuests] = useState([]);
   const [form, setForm] = useState({ id: null, guest_name: "", guest_email: "" });
@@ -20,13 +20,17 @@ const App = () => {
 
   const LiveToLocalFistSync = async () => {
     const systemInfo = await getSystemInfo(); // Get system data
-  
+    console.log(systemInfo)
     if (!systemInfo || !systemInfo.live_backup_stored) {
       console.log("First-time sync: Fetching live data...");
       try {
-        const response = await fetch("http://127.0.0.1:7998/api/super_admin_link/get_all_guests");
+        const response = await server_post_data(
+          "http://192.168.1.13:8000/api/super_admin_link/get_all_guests",
+          null
+        );
+        // const response = await fetch("http://192.168.1.13:8000/api/super_admin_link/get_all_guests");
         const liveData = await response.json();
-        
+        console.log(liveData)
         if (response.ok) {
           if(liveData.length > 0){
           for (const guest of liveData) {
@@ -85,7 +89,20 @@ const App = () => {
     setForm({ id: null, guest_name: "", guest_email: "" });
     loadGuests();
   };
-
+  const server_post_data = async (url_for, form_data) => {
+    let packageName = "uprestro_crm";
+    if (form_data === null) {
+      form_data = new FormData();
+    }
+    form_data.append("admin_id", "dsfgdfg");
+    console.log('package',packageName)
+    return axios.post(url_for, form_data, {
+      headers: {
+        "X-Package-Name": packageName,
+      },
+    });
+  };
+  
   const handleEdit = (GuestInformation) => {
     setForm(GuestInformation);
   };

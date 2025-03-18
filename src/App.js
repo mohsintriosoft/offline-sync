@@ -25,7 +25,7 @@ const App = () => {
       console.log("First-time sync: Fetching live data...");
       try {
         const response = await server_post_data(
-          "http://192.168.1.13:8000/api/super_admin_link/get_all_guests",
+          "http://192.168.1.7:8000/api/super_admin_link/get_all_guests",
           null
         );
         // const response = await fetch("http://192.168.1.13:8000/api/super_admin_link/get_all_guests");

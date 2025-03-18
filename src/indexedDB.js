@@ -247,10 +247,10 @@ export const syncData = async () => {
           
           // If there's an error but we have a lastSyncedId, clear up to that point
           if (lastSyncedId > 0) {
-            // await clearSyncTableBeforeId(lastSyncedId);
+            await clearSyncTableBeforeId(lastSyncedId);
             console.log(`Cleared records with ID ≤ ${lastSyncedId}`);
           }
-          
+          alert(response.data.message)
           // Break the loop to prevent processing more chunks
           break;
         } else {
@@ -260,16 +260,18 @@ export const syncData = async () => {
           
           // Clear successfully synced records
           if (lastSyncedId > 0) {
-            // await clearSyncTableBeforeId(lastSyncedId);
+            await clearSyncTableBeforeId(lastSyncedId);
             console.log(`Cleared records with ID ≤ ${lastSyncedId}`);
           }
         }
       } else {
+        alert(response)
         console.error("Failed to sync, server response:", response);
         failCount++;
         break; // Stop processing more chunks if this chunk failed
       }
     } catch (error) {
+      alert(error)
       console.error("Error syncing data:", error);
       failCount++;
       break; // Stop processing more chunks if there was an exception
